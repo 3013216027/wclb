@@ -6,7 +6,7 @@ import itchat
 import shutil
 from itchat.content import *
 
-DEBUG = True
+DEBUG = False
 FWD_UID = None  # send messages to yourself
 STORAGE_DIR = './storage'
 FILTER_LST = {
@@ -49,7 +49,7 @@ def file_handle(msg):
     from_user = msg['FromUserName']
     if DEBUG:
         print('file_handle called')
-        print('download filename = %s' % file_name)
+        print('filename = %s' % file_name)
     if (not FILTER_LST) or msg['FromUserName'] in FILTER_LST:
         msg['Text'](file_name)
         fwd_msg = '【%s.%s】%s' % (FILTER_LST.get('from_user'), file_type, file_name)
@@ -96,7 +96,7 @@ def init():
     # add myself to filter list in debug mode
     if DEBUG:
         FILTER_LST.update({
-            # '@480148ce2efbd95dc21dfdb1cddfad73': 'myself',
+            '@480148ce2efbd95dc21dfdb1cddfad73': 'myself',
         })
 
 
