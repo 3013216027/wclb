@@ -52,7 +52,7 @@ def file_handle(msg):
         print('filename = %s' % file_name)
     if (not FILTER_LST) or msg['FromUserName'] in FILTER_LST:
         msg['Text'](file_name)
-        fwd_msg = '【%s.%s】%s' % (FILTER_LST.get('from_user'), file_type, file_name)
+        fwd_msg = '【%s.%s】%s' % (FILTER_LST.get(from_user), file_type, file_name)
         itchat.send(fwd_msg, FWD_UID)
         file_dir = os.path.join(STORAGE_DIR, file_name)
         shutil.move(file_name, file_dir)
