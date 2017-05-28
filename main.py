@@ -2,8 +2,10 @@
 # Author        : zhengdongjian@bytedance.com
 # Create Time   : 2017/5/27 下午7:10
 import os
+import json
 import itchat
 import shutil
+import datetime
 from itchat.content import *
 
 DEBUG = True
@@ -12,6 +14,10 @@ STORAGE_DIR = './storage'
 FILTER_LST = {
     # '@758c383e97d9597f9868ff5e217fc2169b69f10119977e31df074354551318e2': '8666',
 }
+
+
+def get_time():
+    return datetime.datetime.now().strftime('%y%m%dT%H:%M:%S')
 
 
 @itchat.msg_register([TEXT, MAP, CARD, NOTE, SHARING], isFriendChat=True, isGroupChat=True)
@@ -29,7 +35,9 @@ def text_handle(msg):
     if DEBUG:
         print('text_handle called')
     if (not FILTER_LST) or from_user in FILTER_LST:
-        fwd_msg = '【%s.%s】%s' % (FILTER_LST.get(from_user, from_user), msg['Type'], msg['Text'])
+        fwd_msg = '[%s@%s]%s' % (FILTER_LST.get(from_user, from_user), get_time(), msg['Text'])
+        if DEBUG:
+            print(fwd_msg)
         itchat.send(fwd_msg, FWD_UID)
     else:
         print('%s: %s' % (from_user, msg['Text']))
@@ -39,7 +47,7 @@ def text_handle(msg):
 def system_handle(msg):
     if DEBUG:
         print('system_handle called')
-    fwd_msg = '[system]%s' % msg
+    fwd_msg = '[system]%s' % json.dumps(msg, indent=2)
     print(fwd_msg)
 
 
@@ -58,10 +66,11 @@ def file_handle(msg):
     from_user = msg['FromUserName']
     if DEBUG:
         print('file_handle called')
-        print('filename = %s' % file_name)
     if (not FILTER_LST) or msg['FromUserName'] in FILTER_LST:
         msg['Text'](file_name)
-        fwd_msg = '【%s.%s】%s' % (FILTER_LST.get(from_user, from_user), file_type, file_name)
+        fwd_msg = '[%s@%s]%s' % (FILTER_LST.get(from_user, from_user), get_time(), file_name)
+        if DEBUG:
+            print(fwd_msg)
         itchat.send(fwd_msg, FWD_UID)
         file_dir = os.path.join(STORAGE_DIR, file_name)
         shutil.move(file_name, file_dir)
@@ -109,9 +118,11 @@ def init():
         #     '@480148ce2efbd95dc21dfdb1cddfad73': 'myself',
         # })
         FILTER_LST = {}
+        print('DEBUG is on, set FILTER_LST to empty.')
 
 
 if __name__ == '__main__':
     init()
     itchat.auto_login(hotReload=True, enableCmdQR=True)
     itchat.run()
+
