@@ -28,7 +28,6 @@ def text_handle(msg):
     from_user = msg['FromUserName']
     if DEBUG:
         print('text_handle called')
-        print('FILTER_LST = %s' % FILTER_LST)
     if (not FILTER_LST) or from_user in FILTER_LST:
         fwd_msg = '【%s.%s】%s' % (FILTER_LST.get(from_user, from_user), msg['Type'], msg['Text'])
         itchat.send(fwd_msg, FWD_UID)
