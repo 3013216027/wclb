@@ -55,7 +55,7 @@ def text_handle(msg):
     if DEBUG:
         print('text_handle called')
     if (not NAME_MAP) or from_user in NAME_MAP:
-        fwd_msg = '[%s@%s]%s' % (NAME_MAP.get(from_user, from_user), get_time(), msg['Text'])
+        fwd_msg = '%s[%s@%s]' % (msg['Text'], NAME_MAP.get(from_user, from_user), get_time())
         if DEBUG:
             print(fwd_msg)
         itchat.send(fwd_msg, FWD_UID)
@@ -80,7 +80,7 @@ def file_handle(msg):
         print('file_handle called')
     if (not NAME_MAP) or msg['FromUserName'] in NAME_MAP:
         msg['Text'](file_name)
-        fwd_msg = '[%s@%s]%s' % (NAME_MAP.get(from_user, from_user), get_time(), file_name)
+        fwd_msg = '%s[%s@%s]' % (file_name, NAME_MAP.get(from_user, from_user), get_time())
         if DEBUG:
             print(fwd_msg)
         itchat.send(fwd_msg, FWD_UID)
