@@ -6,7 +6,7 @@ import settings
 
 logger = logging.getLogger('wclb')  # use root logger
 handler = logging.StreamHandler()
-formatter = logging.Formatter('[%(asctime)s %(filename)s L%(lineno)s] %(message)s')
+formatter = logging.Formatter('[%(levelname)s %(asctime)s %(filename)s L%(lineno)s] %(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 

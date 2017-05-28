@@ -1,25 +1,40 @@
 # -*- coding: utf-8 -*-
 # Author        : zhengdongjian@bytedance.com
 # Create Time   : 2017/5/27 下午7:10
-import os
-import ujson
-import itchat
-import shutil
 import datetime
+import os
+import re
+import ujson
+
+import itchat
 from itchat.content import *
 
+from settings import FILTER, DEBUG, FWD_UID, STORAGE_DIR, ITCHAT_LOGIN_CONFIG
 from util import logger
-from settings import FILTER, DEBUG
+from db import MessageSet
 
-FWD_UID = None  # send messages to yourself
-STORAGE_DIR = './storage'
+TEXT_TYPE = [TEXT, MAP, CARD, SHARING]
+FILE_TYPE = [PICTURE, RECORDING, ATTACHMENT, VIDEO]
+
+REVOKE_MSG_ID = 10002
+REVOKE_CONTENT_RE = re.compile(r'<msgid>(\d+)<')
+
+message_set = MessageSet()
 
 
-def get_time():
-    return datetime.datetime.now().strftime('%y%m%dT%X')
+def get_time(ts=None):
+    if not ts:
+        dt = datetime.datetime.now()
+    else:
+        dt = datetime.datetime.fromtimestamp(ts)
+    return dt.strftime('%y%m%dT%X')
 
 
-@itchat.msg_register([TEXT, MAP, CARD, NOTE, SHARING], isFriendChat=True)
+def parse_name(user):
+    return user.get('RemarkName', '') or user.get('NickName', '') or user.get('UserName')
+
+
+@itchat.msg_register(TEXT_TYPE, isFriendChat=True)
 def text_handle(msg):
     """
     TEXT: 文本
@@ -32,16 +47,31 @@ def text_handle(msg):
     """
     logger.debug('text_handle called')
     logger.debug('%s' % ujson.dumps(msg, indent=2))
-    from_user = msg['RemarkName'] or msg['NickName']
-    if (not FILTER) or from_user in FILTER:
-        fwd_msg = '%s[%s@%s]' % (msg['Text'], from_user, get_time())
-        logger.info(fwd_msg)
+    from_user = msg['User']
+    cname = parse_name(from_user)
+    text = msg['Text']
+    content = msg['Content']
+    msg_type = msg['Type']
+    msg_id = msg['MsgId']
+    create_time = get_time(msg['CreateTime'])
+    message = {
+        # 'mid': msg_id,
+        'from_user': cname,
+        'type': msg_type,
+        'time': create_time,
+        'body': {
+            'text': text,
+            'content': content,
+        },
+    }
+    message_set.set(msg_id, message)
+    if DEBUG:
+        logger.debug('message stored: %s' % ujson.dumps(message, indent=2))
+        fwd_msg = '[DEBUG]%s[%s@%s]' % (msg['Text'], cname, get_time())
         itchat.send(fwd_msg, FWD_UID)
-    else:
-        logger.debug('%s: %s' % (from_user, msg['Text']))
 
 
-@itchat.msg_register([PICTURE, RECORDING, ATTACHMENT, VIDEO], isFriendChat=True)
+@itchat.msg_register(FILE_TYPE, isFriendChat=True)
 def file_handle(msg):
     """
     PICTURE: 图片、表情
@@ -53,23 +83,69 @@ def file_handle(msg):
     """
     logger.debug('file_handle called')
     logger.debug('%s' % ujson.dumps(msg, indent=2))
+    from_user = msg['User']
+    cname = parse_name(from_user)
     file_name = msg['FileName']
+    storage_name = os.path.join(STORAGE_DIR, file_name)
     file_type = msg['Type']
-    from_user = msg['RemarkName'] or msg['NickName']
-    if (not FILTER) or from_user in FILTER:
-        msg['Text'](file_name)
-        fwd_msg = '%s[%s@%s]' % (file_name, from_user, get_time())
-        logger.info(fwd_msg)
+    msg_id = msg['MsgId']
+    content = msg['Content']
+    create_time = get_time(msg['CreateTime'])
+    message = {
+        'from_user': cname,
+        'type': file_type,
+        'time': create_time,
+        'body': {
+            'file_name': file_name,
+            'storage_name': storage_name,
+            'content': content,
+        },
+    }
+    message_set.set(msg_id, message)
+    if (not FILTER) or cname in FILTER:
+        msg['Text'](storage_name)  # only buffer files from those in filter list
+    if DEBUG:
+        logger.debug('message stored: %s' % ujson.dumps(message, indent=2))
+
+
+@itchat.msg_register([NOTE])
+def note_handle(msg):
+    logger.debug('note_handle called')
+    logger.debug('%s' % ujson.dumps(msg, indent=2))
+    msg_type_id = msg['MsgType']
+    content = msg['Content']
+    if msg_type_id != REVOKE_MSG_ID:
+        return
+    revoke_msg_id = REVOKE_CONTENT_RE.findall(content)
+    if not revoke_msg_id:
+        logger.warning('MsgId not found!, body=%s' % ujson.dumps(msg, indent=2))
+        return
+    revoke_msg_id = revoke_msg_id[0]
+    message = message_set.get(revoke_msg_id)
+    from_user = message['from_user']
+    message_time = message['time']
+    message_type = message['type']
+    body = message['body']
+    if message_type in TEXT_TYPE:
+        text = body['text']
+        fwd_msg = '%s[%s@%s]' % (text, from_user, message_time)
         itchat.send(fwd_msg, FWD_UID)
-        file_dir = os.path.join(STORAGE_DIR, file_name)
-        shutil.move(file_name, file_dir)
-        if file_type == PICTURE:
-            itchat.send_image(file_dir, toUserName=FWD_UID)
-        elif file_type == VIDEO:
-            itchat.send_video(file_dir, toUserName=FWD_UID)
+    elif message_type in FILE_TYPE:
+        file_name = body['file_name']
+        storage_name = body['storage_name']
+        if not os.path.exists(storage_name):
+            logger.error('[note_handle]File %s not exist!' % storage_name)
+            return
+        fwd_msg = '%s[%s@%s]' % (file_name, from_user, message_time)
+        itchat.send(fwd_msg, FWD_UID)
+        if message_type == PICTURE:
+            itchat.send_image(storage_name, toUserName=FWD_UID)
+        elif message_type == VIDEO:
+            itchat.send_video(storage_name, toUserName=FWD_UID)
         else:
-            itchat.send_file(file_dir, toUserName=FWD_UID)
-        # return '@%s@%s' % ({'Picture': 'img', 'Video': 'vid'}.get(msg['Type'], 'fil'), msg['FileName'])
+            itchat.send_file(storage_name, toUserName=FWD_UID)
+    else:
+        logger.info('Unhandled message_type %s' % message_type)
 
 
 @itchat.msg_register(FRIENDS)
@@ -99,8 +175,8 @@ def init():
 
 if __name__ == '__main__':
     init()
-    itchat.auto_login(hotReload=True, enableCmdQR=True)
+    itchat.auto_login(**ITCHAT_LOGIN_CONFIG)
     try:
         itchat.run()
     except Exception as ex:
-        logger.warning(ex)
+        logger.exception('[init]ex=%s' % ex)
