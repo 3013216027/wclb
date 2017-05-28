@@ -28,12 +28,13 @@ def system_handle(msg):
         print('system_handle called')
     user = msg.get('User')
     if user:
+        # print(json.dumps(user, indent=2))
         username = user.get('UserName')
-        nickname = user.get('NickName')
-        if username and nickname:
-            NAME_MAP[username] = nickname
+        cname = user.get('RemarkName') or user.get('NickName')
+        if username and cname:
+            NAME_MAP[username] = cname
             if DEBUG:
-                print('username table updated: %s -> %s' % (username, nickname))
+                print('username table updated: %s -> %s' % (username, cname))
         else:
             if DEBUG:
                 print('error while parse system_handle %s' % (json.dumps(user)))
