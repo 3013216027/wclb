@@ -3,14 +3,14 @@
 # Create Time: Sun May 28 19:55:08 2017
 import logging
 
-DEBUG = False
+DEBUG = True
 
-LOG_LEVEL = logging.INFO  # CRITICAL, ERROR, WARNING, INFO, DEBUG
+LOG_LEVEL = logging.INFO
 
 FILTER = [
-    '8666',
+    '8666',  # Use RemarkName first, followed by NickName
 ]
 
 if DEBUG:
-    FILTER = []  # empty FILTER to release all messages on debug mode
+    FILTER = []  # Empty FILTER to release all messages on debug mode
 

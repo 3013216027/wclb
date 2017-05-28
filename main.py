@@ -2,42 +2,24 @@
 # Author        : zhengdongjian@bytedance.com
 # Create Time   : 2017/5/27 下午7:10
 import os
-import json
+import ujson
 import itchat
 import shutil
 import datetime
 from itchat.content import *
 
 from util import logger
-from settings import FILTER
+from settings import FILTER, DEBUG
 
 FWD_UID = None  # send messages to yourself
 STORAGE_DIR = './storage'
-NAME_MAP = {}
 
 
 def get_time():
     return datetime.datetime.now().strftime('%y%m%dT%X')
 
 
-@itchat.msg_register([SYSTEM])
-def system_handle(msg):
-    """
-    动态更新昵称和UserName映射表
-    """
-    logger.debug('system_handle called')
-    user = msg.get('User')
-    if user:
-        username = user.get('UserName')
-        cname = user.get('RemarkName') or user.get('NickName')
-        if username and cname:
-            NAME_MAP[username] = cname
-            logger.debug('username table updated: %s -> %s' % (username, cname))
-        else:
-            logger.debug('error while parse system_handle %s' % (json.dumps(user)))
-
-
-@itchat.msg_register([TEXT, MAP, CARD, NOTE, SHARING], isFriendChat=True, isGroupChat=True)
+@itchat.msg_register([TEXT, MAP, CARD, NOTE, SHARING], isFriendChat=True)
 def text_handle(msg):
     """
     TEXT: 文本
@@ -48,8 +30,9 @@ def text_handle(msg):
     :param msg: 文本类/可文本化消息
     :return:
     """
-    from_user = NAME_MAP.get(msg['FromUserName'])
     logger.debug('text_handle called')
+    logger.debug('%s' % ujson.dumps(msg, indent=2))
+    from_user = msg['RemarkName'] or msg['NickName']
     if (not FILTER) or from_user in FILTER:
         fwd_msg = '%s[%s@%s]' % (msg['Text'], from_user, get_time())
         logger.info(fwd_msg)
@@ -68,10 +51,11 @@ def file_handle(msg):
     :param msg: 文件类信息
     :return:
     """
+    logger.debug('file_handle called')
+    logger.debug('%s' % ujson.dumps(msg, indent=2))
     file_name = msg['FileName']
     file_type = msg['Type']
-    from_user = NAME_MAP.get(msg['FromUserName'])
-    logger.debug('file_handle called')
+    from_user = msg['RemarkName'] or msg['NickName']
     if (not FILTER) or from_user in FILTER:
         msg['Text'](file_name)
         fwd_msg = '%s[%s@%s]' % (file_name, from_user, get_time())
@@ -103,20 +87,20 @@ def add_friend(msg):
 
 def init():
     # make directory for storage
-    global NAME_MAP
     if not os.path.exists(STORAGE_DIR):
         try:
             os.mkdir(STORAGE_DIR)
         except Exception as ex:
             logger.exception('[init.make_dir]ex=%s' % ex)
-
-    # add myself to filter list in debug mode
-    NAME_MAP = {}
-    logger.debug('DEBUG is on.')
+    if DEBUG:
+        logger.debug('DEBUG is on.')
     logger.info('init finished.')
 
 
 if __name__ == '__main__':
     init()
     itchat.auto_login(hotReload=True, enableCmdQR=True)
-    itchat.run()
+    try:
+        itchat.run()
+    except Exception as ex:
+        logger.warning(ex)
