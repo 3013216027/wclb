@@ -9,11 +9,11 @@ import datetime
 from itchat.content import *
 
 from util import logger
+from settings import FILTER
 
 FWD_UID = None  # send messages to yourself
 STORAGE_DIR = './storage'
-NAME_MAP = {
-}
+NAME_MAP = {}
 
 
 def get_time():
@@ -28,7 +28,6 @@ def system_handle(msg):
     logger.debug('system_handle called')
     user = msg.get('User')
     if user:
-        # print(json.dumps(user, indent=2))
         username = user.get('UserName')
         cname = user.get('RemarkName') or user.get('NickName')
         if username and cname:
@@ -49,10 +48,10 @@ def text_handle(msg):
     :param msg: 文本类/可文本化消息
     :return:
     """
-    from_user = msg['FromUserName']
+    from_user = NAME_MAP.get(msg['FromUserName'])
     logger.debug('text_handle called')
-    if (not NAME_MAP) or from_user in NAME_MAP:
-        fwd_msg = '%s[%s@%s]' % (msg['Text'], NAME_MAP.get(from_user, from_user), get_time())
+    if (not FILTER) or from_user in FILTER:
+        fwd_msg = '%s[%s@%s]' % (msg['Text'], from_user, get_time())
         logger.info(fwd_msg)
         itchat.send(fwd_msg, FWD_UID)
     else:
@@ -71,11 +70,11 @@ def file_handle(msg):
     """
     file_name = msg['FileName']
     file_type = msg['Type']
-    from_user = msg['FromUserName']
+    from_user = NAME_MAP.get(msg['FromUserName'])
     logger.debug('file_handle called')
-    if (not NAME_MAP) or msg['FromUserName'] in NAME_MAP:
+    if (not FILTER) or from_user in FILTER:
         msg['Text'](file_name)
-        fwd_msg = '%s[%s@%s]' % (file_name, NAME_MAP.get(from_user, from_user), get_time())
+        fwd_msg = '%s[%s@%s]' % (file_name, from_user, get_time())
         logger.info(fwd_msg)
         itchat.send(fwd_msg, FWD_UID)
         file_dir = os.path.join(STORAGE_DIR, file_name)
@@ -108,8 +107,8 @@ def init():
     if not os.path.exists(STORAGE_DIR):
         try:
             os.mkdir(STORAGE_DIR)
-        except Exception as e:
-            logger.exception('[init.make_dir]ex=%s' % e)
+        except Exception as ex:
+            logger.exception('[init.make_dir]ex=%s' % ex)
 
     # add myself to filter list in debug mode
     NAME_MAP = {}
@@ -121,4 +120,3 @@ if __name__ == '__main__':
     init()
     itchat.auto_login(hotReload=True, enableCmdQR=True)
     itchat.run()
-
