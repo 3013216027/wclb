@@ -8,7 +8,8 @@ import shutil
 import datetime
 from itchat.content import *
 
-DEBUG = True
+from util import logger
+
 FWD_UID = None  # send messages to yourself
 STORAGE_DIR = './storage'
 NAME_MAP = {
@@ -24,8 +25,7 @@ def system_handle(msg):
     """
     动态更新昵称和UserName映射表
     """
-    if DEBUG:
-        print('system_handle called')
+    logger.debug('system_handle called')
     user = msg.get('User')
     if user:
         # print(json.dumps(user, indent=2))
@@ -33,11 +33,9 @@ def system_handle(msg):
         cname = user.get('RemarkName') or user.get('NickName')
         if username and cname:
             NAME_MAP[username] = cname
-            if DEBUG:
-                print('username table updated: %s -> %s' % (username, cname))
+            logger.debug('username table updated: %s -> %s' % (username, cname))
         else:
-            if DEBUG:
-                print('error while parse system_handle %s' % (json.dumps(user)))
+            logger.debug('error while parse system_handle %s' % (json.dumps(user)))
 
 
 @itchat.msg_register([TEXT, MAP, CARD, NOTE, SHARING], isFriendChat=True, isGroupChat=True)
@@ -52,15 +50,13 @@ def text_handle(msg):
     :return:
     """
     from_user = msg['FromUserName']
-    if DEBUG:
-        print('text_handle called')
+    logger.debug('text_handle called')
     if (not NAME_MAP) or from_user in NAME_MAP:
         fwd_msg = '%s[%s@%s]' % (msg['Text'], NAME_MAP.get(from_user, from_user), get_time())
-        if DEBUG:
-            print(fwd_msg)
+        logger.info(fwd_msg)
         itchat.send(fwd_msg, FWD_UID)
     else:
-        print('%s: %s' % (from_user, msg['Text']))
+        logger.debug('%s: %s' % (from_user, msg['Text']))
 
 
 @itchat.msg_register([PICTURE, RECORDING, ATTACHMENT, VIDEO], isFriendChat=True)
@@ -76,13 +72,11 @@ def file_handle(msg):
     file_name = msg['FileName']
     file_type = msg['Type']
     from_user = msg['FromUserName']
-    if DEBUG:
-        print('file_handle called')
+    logger.debug('file_handle called')
     if (not NAME_MAP) or msg['FromUserName'] in NAME_MAP:
         msg['Text'](file_name)
         fwd_msg = '%s[%s@%s]' % (file_name, NAME_MAP.get(from_user, from_user), get_time())
-        if DEBUG:
-            print(fwd_msg)
+        logger.info(fwd_msg)
         itchat.send(fwd_msg, FWD_UID)
         file_dir = os.path.join(STORAGE_DIR, file_name)
         shutil.move(file_name, file_dir)
@@ -102,9 +96,8 @@ def add_friend(msg):
     :param msg:
     :return:
     """
-    if DEBUG:
-        print('add_friend called')
-        print('get add_friend request from %s' % (msg['Text']))
+    logger.debug('add_friend called')
+    logger.info('get add_friend request from %s' % (msg['Text']))
     # itchat.add_friend(**msg['Text']) # 该操作会自动将新好友的消息录入，不需要重载通讯录
     # itchat.send_msg('Nice to meet you!', msg['RecommendInfo']['UserName'])
 
@@ -116,12 +109,12 @@ def init():
         try:
             os.mkdir(STORAGE_DIR)
         except Exception as e:
-            print('[init.make_dir]ex=%s' % e)
+            logger.exception('[init.make_dir]ex=%s' % e)
 
     # add myself to filter list in debug mode
     NAME_MAP = {}
-    if DEBUG:
-        print('DEBUG is on.')
+    logger.debug('DEBUG is on.')
+    logger.info('init finished.')
 
 
 if __name__ == '__main__':
