@@ -11,13 +11,32 @@ from itchat.content import *
 DEBUG = True
 FWD_UID = None  # send messages to yourself
 STORAGE_DIR = './storage'
-FILTER_LST = {
-    # '@758c383e97d9597f9868ff5e217fc2169b69f10119977e31df074354551318e2': '8666',
+NAME_MAP = {
 }
 
 
 def get_time():
     return datetime.datetime.now().strftime('%y%m%dT%X')
+
+
+@itchat.msg_register([SYSTEM])
+def system_handle(msg):
+    """
+    动态更新昵称和UserName映射表
+    """
+    if DEBUG:
+        print('system_handle called')
+    user = msg.get('User')
+    if user:
+        username = user.get('UserName')
+        nickname = user.get('NickName')
+        if username and nickname:
+            NAME_MAP[username] = nickname
+            if DEBUG:
+                print('username table updated: %s -> %s' % (username, nickname))
+        else:
+            if DEBUG:
+                print('error while parse system_handle %s' % (json.dumps(user)))
 
 
 @itchat.msg_register([TEXT, MAP, CARD, NOTE, SHARING], isFriendChat=True, isGroupChat=True)
@@ -34,21 +53,13 @@ def text_handle(msg):
     from_user = msg['FromUserName']
     if DEBUG:
         print('text_handle called')
-    if (not FILTER_LST) or from_user in FILTER_LST:
-        fwd_msg = '[%s@%s]%s' % (FILTER_LST.get(from_user, from_user), get_time(), msg['Text'])
+    if (not NAME_MAP) or from_user in NAME_MAP:
+        fwd_msg = '[%s@%s]%s' % (NAME_MAP.get(from_user, from_user), get_time(), msg['Text'])
         if DEBUG:
             print(fwd_msg)
         itchat.send(fwd_msg, FWD_UID)
     else:
         print('%s: %s' % (from_user, msg['Text']))
-
-
-@itchat.msg_register([SYSTEM])
-def system_handle(msg):
-    if DEBUG:
-        print('system_handle called')
-    fwd_msg = '[system]%s' % json.dumps(msg, indent=2)
-    print(fwd_msg)
 
 
 @itchat.msg_register([PICTURE, RECORDING, ATTACHMENT, VIDEO], isFriendChat=True)
@@ -66,9 +77,9 @@ def file_handle(msg):
     from_user = msg['FromUserName']
     if DEBUG:
         print('file_handle called')
-    if (not FILTER_LST) or msg['FromUserName'] in FILTER_LST:
+    if (not NAME_MAP) or msg['FromUserName'] in NAME_MAP:
         msg['Text'](file_name)
-        fwd_msg = '[%s@%s]%s' % (FILTER_LST.get(from_user, from_user), get_time(), file_name)
+        fwd_msg = '[%s@%s]%s' % (NAME_MAP.get(from_user, from_user), get_time(), file_name)
         if DEBUG:
             print(fwd_msg)
         itchat.send(fwd_msg, FWD_UID)
@@ -97,15 +108,9 @@ def add_friend(msg):
     # itchat.send_msg('Nice to meet you!', msg['RecommendInfo']['UserName'])
 
 
-# @itchat.msg_register(TEXT, isGroupChat = True)
-# def groupchat_reply(msg):
-#     if msg['isAt']:
-#         itchat.send(u'@%s I received: %s' % (msg['ActualNickName'], msg['Content']), msg['FromUserName'])
-
-
 def init():
     # make directory for storage
-    global FILTER_LST
+    global NAME_MAP
     if not os.path.exists(STORAGE_DIR):
         try:
             os.mkdir(STORAGE_DIR)
@@ -113,12 +118,9 @@ def init():
             print('[init.make_dir]ex=%s' % e)
 
     # add myself to filter list in debug mode
+    NAME_MAP = {}
     if DEBUG:
-        # FILTER_LST.update({
-        #     '@480148ce2efbd95dc21dfdb1cddfad73': 'myself',
-        # })
-        FILTER_LST = {}
-        print('DEBUG is on, set FILTER_LST to empty.')
+        print('DEBUG is on.')
 
 
 if __name__ == '__main__':
