@@ -17,7 +17,7 @@ FILTER_LST = {
 
 
 def get_time():
-    return datetime.datetime.now().strftime('%y%m%dT%H:%M:%S')
+    return datetime.datetime.now().strftime('%y%m%dT%X')
 
 
 @itchat.msg_register([TEXT, MAP, CARD, NOTE, SHARING], isFriendChat=True, isGroupChat=True)
