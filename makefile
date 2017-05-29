@@ -7,6 +7,7 @@ test: main.py
 daemon: main.py
 	@echo "====================" >> access.log
 	@nohup python -u main.py >> access.log 2>&1 &
+	@sleep 5 && tail -n45 access.log
 
 clean:
 	@cat ${.PID} | xargs kill && rm ${.PID}
