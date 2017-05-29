@@ -21,7 +21,7 @@ REDIS_CONFIG = {
     'port': 6379,
     'db': 0,
 }
-EXPIRE_TIME = 3600  # Only hold messages within * seconds
+EXPIRE_TIME = 3600 * 24  # Only hold messages within * seconds
 
 # Forward UserName
 FWD_UID = 'filehelper'

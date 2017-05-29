@@ -10,4 +10,6 @@
 ## Usage
 
 1. Configure on `settings.py`, include redis port and anything else.
-2.
+2. Run with `make test` or `make daemon` to run in daemon mode
+3. Stop the daemon with `make stop`
+

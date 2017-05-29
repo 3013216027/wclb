@@ -9,6 +9,6 @@ daemon: main.py
 	@nohup python -u main.py >> access.log 2>&1 &
 	@sleep 5 && tail -n45 access.log
 
-clean:
+stop:
 	@cat ${.PID} | xargs kill && rm ${.PID}
 
