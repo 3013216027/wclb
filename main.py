@@ -47,13 +47,13 @@ def text_handle(msg):
     """
     logger.debug('text_handle called')
     logger.debug('%s' % ujson.dumps(msg, indent=2))
-    from_user = msg['User']
+    from_user = msg.get('User')
     cname = parse_name(from_user)
-    text = msg['Text']
-    content = msg['Content']
-    msg_type = msg['Type']
-    msg_id = msg['MsgId']
-    create_time = get_time(msg['CreateTime'])
+    text = msg.get('Text')
+    content = msg.get('Content')
+    msg_type = msg.get('Type')
+    msg_id = msg.get('MsgId')
+    create_time = get_time(msg.get('CreateTime'))
     message = {
         # 'mid': msg_id,
         'from_user': cname,
@@ -67,7 +67,7 @@ def text_handle(msg):
     message_set.set(msg_id, message)
     if DEBUG:
         logger.debug('message stored: %s' % ujson.dumps(message, indent=2))
-        fwd_msg = '[DEBUG]%s[%s@%s]' % (msg['Text'], cname, get_time())
+        fwd_msg = '[DEBUG]%s[%s@%s]' % (text, cname, create_time
         itchat.send(fwd_msg, FWD_UID)
 
 
@@ -83,14 +83,14 @@ def file_handle(msg):
     """
     logger.debug('file_handle called')
     logger.debug('%s' % ujson.dumps(msg, indent=2))
-    from_user = msg['User']
+    from_user = msg.get('User')
     cname = parse_name(from_user)
-    file_name = msg['FileName']
+    file_name = msg.get('FileName')
     storage_name = os.path.join(STORAGE_DIR, file_name)
-    file_type = msg['Type']
-    msg_id = msg['MsgId']
-    content = msg['Content']
-    create_time = get_time(msg['CreateTime'])
+    file_type = msg.get('Type')
+    msg_id = msg.get('MsgId')
+    content = msg.get('Content')
+    create_time = get_time(msg.get('CreateTime'))
     message = {
         'from_user': cname,
         'type': file_type,
@@ -112,8 +112,8 @@ def file_handle(msg):
 def note_handle(msg):
     logger.debug('note_handle called')
     logger.debug('%s' % ujson.dumps(msg, indent=2))
-    msg_type_id = msg['MsgType']
-    content = msg['Content']
+    msg_type_id = msg.get('MsgType')
+    content = msg.get('Content')
     if msg_type_id != REVOKE_MSG_ID:
         return
     revoke_msg_id = REVOKE_CONTENT_RE.findall(content)
@@ -122,17 +122,17 @@ def note_handle(msg):
         return
     revoke_msg_id = revoke_msg_id[0]
     message = message_set.get(revoke_msg_id)
-    from_user = message['from_user']
-    message_time = message['time']
-    message_type = message['type']
-    body = message['body']
+    from_user = message.get('from_user')
+    message_time = message.get('time')
+    message_type = message.get('type')
+    body = message.get('body')
     if message_type in TEXT_TYPE:
-        text = body['text']
+        text = body.get('text')
         fwd_msg = '%s[%s@%s]' % (text, from_user, message_time)
         itchat.send(fwd_msg, FWD_UID)
     elif message_type in FILE_TYPE:
-        file_name = body['file_name']
-        storage_name = body['storage_name']
+        file_name = body.get('file_name')
+        storage_name = body.get('storage_name')
         if not os.path.exists(storage_name):
             logger.error('[note_handle]File %s not exist!' % storage_name)
             return
@@ -156,7 +156,7 @@ def add_friend(msg):
     :return:
     """
     logger.debug('add_friend called')
-    logger.info('get add_friend request from %s' % (msg['Text']))
+    logger.info('get add_friend request from %s' % (msg.get('Text')))
     # itchat.add_friend(**msg['Text']) # 该操作会自动将新好友的消息录入，不需要重载通讯录
     # itchat.send_msg('Nice to meet you!', msg['RecommendInfo']['UserName'])
 
