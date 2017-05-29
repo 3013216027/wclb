@@ -9,8 +9,8 @@ LOG_FORMAT = '%(levelname)s %(asctime)s %(filename)s:%(lineno)s data=%(message)s
 
 # Filter list for file storage
 FILTER = [
-    '8666',  # User RemarkName
-    '冬',  # User NickName
+    # '8666',  # User RemarkName
+    # '冬',  # User NickName
 ]
 if DEBUG:
     FILTER = []  # Will buffer all files on DEBUG mode
