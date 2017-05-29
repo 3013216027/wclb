@@ -5,31 +5,34 @@ import logging
 
 DEBUG = False
 LOG_LEVEL = logging.INFO
+LOG_FORMAT = '%(levelname)s %(asctime)s %(filename)s:%(lineno)s data=%(message)s'
 
-
-# filter white list for message forwarding
+# Filter list for file storage
 FILTER = [
     '8666',  # User RemarkName
-    '冬',
+    '冬',  # User NickName
 ]
 if DEBUG:
-    FILTER = []  # Will forward all messages when list is empty
+    FILTER = []  # Will buffer all files on DEBUG mode
 
+# Message buffered with redis.
 REDIS_CONFIG = {
     'host': '127.0.0.1',
     'port': 6379,
     'db': 0,
 }
-EXPIRE_TIME = 3600  # Only hold messages in 1 hour
+EXPIRE_TIME = 3600  # Only hold messages within * seconds
 
+# Forward UserName
+FWD_UID = 'filehelper'
 
-FWD_UID = 'filehelper'  # set to 'None' for yourself
+# Storage settings
+STORAGE_DIR = './storage'  # Directory for file storage
+CLEANUP_ON_STARTUP = True  # Cleanup old files on init/startup phase
+CLEANUP_THRESHOLD = 3600 * 24 * 3  # Only clean files older than * seconds
 
-
-STORAGE_DIR = './storage'
-
-
+# Configuration for itchat auto login
 ITCHAT_LOGIN_CONFIG = {
     'hotReload': True,
-    'enableCmdQR': True,
+    'enableCmdQR': True,  # Change to 2 may fix terminal  width problem
 }

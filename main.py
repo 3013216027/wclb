@@ -4,12 +4,14 @@
 import datetime
 import os
 import re
+import time
 import ujson
 
 import itchat
 from itchat.content import *
 
-from settings import FILTER, DEBUG, FWD_UID, STORAGE_DIR, ITCHAT_LOGIN_CONFIG
+import settings
+from settings import FILTER, DEBUG, FWD_UID, STORAGE_DIR
 from util import logger
 from db import MessageSet
 
@@ -67,7 +69,7 @@ def text_handle(msg):
     message_set.set(msg_id, message)
     if DEBUG:
         logger.debug('message stored: %s' % ujson.dumps(message, indent=2))
-        fwd_msg = '[DEBUG]%s[%s@%s]' % (text, cname, create_time
+        fwd_msg = '[DEBUG]%s[%s@%s]' % (text, cname, create_time)
         itchat.send(fwd_msg, FWD_UID)
 
 
@@ -168,6 +170,15 @@ def init():
             os.mkdir(STORAGE_DIR)
         except Exception as ex:
             logger.exception('[init.make_dir]ex=%s' % ex)
+    # cleanup old files
+    if settings.CLEANUP_ON_STARTUP:
+        current_time = time.time()
+        for f in os.listdir(STORAGE_DIR):
+            file_path = os.path.join(STORAGE_DIR, f)
+            creation_time = os.path.getctime(file_path)
+            if current_time - creation_time > settings.CLEANUP_THRESHOLD:
+                os.unlink(file_path)
+                logger.info('[init.cleanup]removed %s' % file_path)
     if DEBUG:
         logger.debug('DEBUG is on.')
     logger.info('init finished.')
@@ -175,7 +186,7 @@ def init():
 
 if __name__ == '__main__':
     init()
-    itchat.auto_login(**ITCHAT_LOGIN_CONFIG)
+    itchat.auto_login(**settings.ITCHAT_LOGIN_CONFIG)
     try:
         itchat.run()
     except Exception as ex:

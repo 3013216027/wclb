@@ -4,9 +4,9 @@
 import logging
 import settings
 
-logger = logging.getLogger('wclb')  # use root logger
+logger = logging.getLogger('wclb')
 handler = logging.StreamHandler()
-formatter = logging.Formatter('[%(levelname)s %(asctime)s %(filename)s L%(lineno)s] %(message)s')
+formatter = logging.Formatter(settings.LOG_FORMAT)
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
