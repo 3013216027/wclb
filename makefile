@@ -1,5 +1,13 @@
-.default: run
+.PID=wclb.pid
+.default: test
 
-run: main.py
-	python -u main.py
+test: main.py
+	@python -u main.py
+
+daemon: main.py
+	@echo "====================" >> access.log
+	@nohup python -u main.py >> access.log 2>&1 &
+
+clean:
+	@cat ${.PID} | xargs kill && rm ${.PID}
 

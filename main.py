@@ -179,6 +179,11 @@ def init():
             if current_time - creation_time > settings.CLEANUP_THRESHOLD:
                 os.unlink(file_path)
                 logger.info('[init.cleanup]removed %s' % file_path)
+    # Set PID file
+    pid = os.getpid()
+    with open('wclb.pid', 'w') as f:
+        f.write(str(pid))
+    # Others
     if DEBUG:
         logger.debug('DEBUG is on.')
     logger.info('init finished.')

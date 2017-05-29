@@ -2,5 +2,8 @@
 __pycache__
 *pyc
 
+*.pid
+access.log
+
 itchat.pkl
 storage

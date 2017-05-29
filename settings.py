@@ -34,5 +34,5 @@ CLEANUP_THRESHOLD = 3600 * 24 * 3  # Only clean files older than * seconds
 # Configuration for itchat auto login
 ITCHAT_LOGIN_CONFIG = {
     'hotReload': True,
-    'enableCmdQR': True,  # Change to 2 may fix terminal  width problem
+    'enableCmdQR': 2,  # Change to True may fix terminal width problem
 }
