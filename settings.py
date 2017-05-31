@@ -22,6 +22,7 @@ REDIS_CONFIG = {
     'db': 0,
 }
 EXPIRE_TIME = 3600 * 24  # Only hold messages within * seconds
+USER_POLICY = ['default', 'hashmap'][1]  # policy for user cname storage
 
 # Forward UserName
 FWD_UID = 'filehelper'

@@ -13,7 +13,7 @@ from itchat.content import *
 import settings
 from settings import FILTER, DEBUG, FWD_UID, STORAGE_DIR
 from util import logger
-from db import MessageSet
+from db import DBS
 
 TEXT_TYPE = [TEXT, MAP, CARD, SHARING]
 FILE_TYPE = [PICTURE, RECORDING, ATTACHMENT, VIDEO]
@@ -21,7 +21,7 @@ FILE_TYPE = [PICTURE, RECORDING, ATTACHMENT, VIDEO]
 REVOKE_MSG_ID = 10002
 REVOKE_CONTENT_RE = re.compile(r'<msgid>(\d+)<')
 
-message_set = MessageSet()
+db = DBS()
 
 
 def get_time(ts=None):
@@ -32,11 +32,34 @@ def get_time(ts=None):
     return dt.strftime('%y%m%dT%X')
 
 
-def parse_name(user):
-    return user.get('RemarkName', '') or user.get('NickName', '') or user.get('UserName')
+def update_name(obj):
+    """
+    parse cname from json obj
+    :param obj:
+    :return:
+    """
+    if not obj:
+        return
+    username = obj.get('UserName')
+    cname = obj.get('DisplayName') or obj.get('RemarkName') or obj.get('NickName')
+    db.set_name(username, cname)
+    logger.info('[update_name]set user name %s -> %s' % (username, cname))
 
 
-@itchat.msg_register(TEXT_TYPE, isFriendChat=True)
+def handle_name(user):
+    """
+    DisplayName is for group display only
+    :param user: user data JSON
+    :return:
+    """
+    update_name(user)
+    update_name(user.get('Self'))
+    member_list = user.get('MemberList')
+    for member in member_list:
+        update_name(member)
+
+
+@itchat.msg_register(TEXT_TYPE, isFriendChat=True, isGroupChat=True)
 def text_handle(msg):
     """
     TEXT: 文本
@@ -49,7 +72,8 @@ def text_handle(msg):
     """
     logger.info('[text_handle]%s' % ujson.dumps(msg, indent=2))
     from_user = msg.get('User')
-    cname = parse_name(from_user)
+    handle_name(from_user)
+    cname = db.get_name(msg.get('FromUserName'))
     text = msg.get('Text')
     content = msg.get('Content')
     msg_type = msg.get('Type')
@@ -65,14 +89,14 @@ def text_handle(msg):
             'content': content,
         },
     }
-    message_set.set(msg_id, message)
+    db.set_msg(msg_id, message)
     if DEBUG:
         logger.debug('[text_handle]message stored: %s' % ujson.dumps(message, indent=2))
         fwd_msg = '[DEBUG]%s[%s@%s]' % (text, cname, create_time)
         itchat.send(fwd_msg, FWD_UID)
 
 
-@itchat.msg_register(FILE_TYPE, isFriendChat=True)
+@itchat.msg_register(FILE_TYPE, isFriendChat=True, isGroupChat=True)
 def file_handle(msg):
     """
     PICTURE: 图片、表情
@@ -84,7 +108,8 @@ def file_handle(msg):
     """
     logger.info('[file_handle]%s' % ujson.dumps(msg, indent=2))
     from_user = msg.get('User')
-    cname = parse_name(from_user)
+    handle_name(from_user)
+    cname = db.get_name(msg.get('FromUserName'))
     file_name = msg.get('FileName')
     storage_name = os.path.join(STORAGE_DIR, file_name)
     file_type = msg.get('Type')
@@ -109,14 +134,14 @@ def file_handle(msg):
         if not file_size:
             logger.info('[file_handle]removed empty file %s{msg_id=%s}' % (storage_name, msg_id))
             os.remove(storage_name)
-    message_set.set(msg_id, message)
+    db.set_msg(msg_id, message)
     if DEBUG:
         logger.debug('[file_handle]message stored: %s' % ujson.dumps(message, indent=2))
         fwd_msg = '[DEBUG]%s[%s@%s]' % (storage_name, cname, create_time)
         itchat.send(fwd_msg, FWD_UID)
 
 
-@itchat.msg_register([NOTE])
+@itchat.msg_register([NOTE], isFriendChat=True, isGroupChat=True)
 def note_handle(msg):
     logger.info('[note_handle]%s' % ujson.dumps(msg, indent=2))
     msg_type_id = msg.get('MsgType')
@@ -128,14 +153,14 @@ def note_handle(msg):
         logger.error('[note_handle]MsgId not found!, body=%s' % ujson.dumps(msg, indent=2))
         return
     revoke_msg_id = revoke_msg_id[0]
-    message = message_set.get(revoke_msg_id)
+    message = db.get_msg(revoke_msg_id)
     from_user = message.get('from_user')
     message_time = message.get('time')
     message_type = message.get('type')
     body = message.get('body')
     if message_type in TEXT_TYPE:
         text = body.get('text')
-        fwd_msg = '%s[%s@%s]' % (text, from_user, message_time)
+        fwd_msg = '%s[%s recall@%s]' % (text, from_user, message_time)
         itchat.send(fwd_msg, FWD_UID)
         logger.info('[note_handle]revoked text %s' % message)
     elif message_type in FILE_TYPE:
@@ -144,7 +169,7 @@ def note_handle(msg):
         if not os.path.exists(storage_name):
             logger.warning('[note_handle]File %s not exist!' % storage_name)
             return
-        fwd_msg = '%s[%s@%s]' % (file_name, from_user, message_time)
+        fwd_msg = '%s[%s recall@%s]' % (file_name, from_user, message_time)
         itchat.send(fwd_msg, FWD_UID)
         if message_type == PICTURE:
             itchat.send_image(storage_name, toUserName=FWD_UID)

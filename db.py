@@ -6,15 +6,18 @@ import redis
 import ujson
 
 from util import logger
-from settings import REDIS_CONFIG, EXPIRE_TIME
+from settings import REDIS_CONFIG, EXPIRE_TIME, USER_POLICY
 
-__all__ = ['MessageSet']
+__all__ = ['DBS']
 
 
-class MessageSet(object):
+class DBS(object):
     """
-    MessageSet to store all messages that will have chance to be invoked.
+    collection for messages and user storage
     """
+    USER_HASH = 'user'
+    USER_EXPIRE = 3600
+
     def __init__(self):
         try:
             self.server = redis.Redis(**REDIS_CONFIG)
@@ -22,7 +25,8 @@ class MessageSet(object):
             logger.exception('Error when connecting to redis server, ex=%s' % ex)
             sys.exit(1)
 
-    def get(self, msg_id):
+    # r.publish('test', 'this will reach the listener')
+    def get_msg(self, msg_id):
         """
         get message content by ID
         :param msg_id:
@@ -31,7 +35,7 @@ class MessageSet(object):
         message = self.server.get(msg_id) or b'{}'
         return ujson.loads(message.decode())
 
-    def set(self, msg_id, message_content):
+    def set_msg(self, msg_id, message_content):
         """
         store a message
         :param msg_id:
@@ -40,15 +44,50 @@ class MessageSet(object):
         """
         self.server.set(msg_id, ujson.dumps(message_content), ex=EXPIRE_TIME)
 
+    def get_name(self, username):
+        """
+        get cname for username(@something)
+        :param username:
+        :return:
+        """
+        if USER_POLICY == 'hashmap':
+            return self.server.hget(DBS.USER_HASH, username).decode()
+        else:
+            return self.server.get(username).decode()
+
+    def set_name(self, username, cname):
+        """
+        set cname for username(@something)
+        :param username:
+        :param cname:
+        :return:
+        """
+        if USER_POLICY == 'hashmap':
+            self.server.expire(DBS.USER_HASH, 50)
+            self.server.hset(DBS.USER_HASH, username, cname)
+        else:
+            self.server.set(username, cname, ex=DBS.USER_EXPIRE)
+
     def __getitem__(self, item):
-        return self.get(item)
+        """
+        same as get_msg
+        :param item:
+        :return:
+        """
+        return self.get_msg(item)
 
     def __setitem__(self, key, value):
-        self.set(key, value)
+        """
+        same as set_msg
+        :param key:
+        :param value:
+        :return:
+        """
+        self.set_msg(key, value)
 
 
 if __name__ == '__main__':
-    ms = MessageSet()
-    ms.set('test', {'a': 1, 'b': 2})
-    res = ms.get('test')
+    ms = DBS()
+    ms.set_msg('test', {'a': 1, 'b': 2})
+    res = ms.get_msg('test')
     print(ujson.dumps(res, indent=2))
