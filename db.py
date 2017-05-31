@@ -8,6 +8,8 @@ import ujson
 from util import logger
 from settings import REDIS_CONFIG, EXPIRE_TIME
 
+__all__ = ['MessageSet']
+
 
 class MessageSet(object):
     """

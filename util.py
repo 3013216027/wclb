@@ -4,6 +4,8 @@
 import logging
 import settings
 
+__all__ = ['logger']
+
 logger = logging.getLogger('wclb')
 handler = logging.StreamHandler()
 formatter = logging.Formatter(settings.LOG_FORMAT)
