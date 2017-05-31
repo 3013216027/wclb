@@ -47,8 +47,7 @@ def text_handle(msg):
     :param msg: 文本类/可文本化消息
     :return:
     """
-    logger.debug('text_handle called')
-    logger.debug('%s' % ujson.dumps(msg, indent=2))
+    logger.info('[text_handle]%s' % ujson.dumps(msg, indent=2))
     from_user = msg.get('User')
     cname = parse_name(from_user)
     text = msg.get('Text')
@@ -68,7 +67,7 @@ def text_handle(msg):
     }
     message_set.set(msg_id, message)
     if DEBUG:
-        logger.debug('message stored: %s' % ujson.dumps(message, indent=2))
+        logger.debug('[text_handle]message stored: %s' % ujson.dumps(message, indent=2))
         fwd_msg = '[DEBUG]%s[%s@%s]' % (text, cname, create_time)
         itchat.send(fwd_msg, FWD_UID)
 
@@ -83,8 +82,7 @@ def file_handle(msg):
     :param msg: 文件类信息
     :return:
     """
-    logger.debug('file_handle called')
-    logger.debug('%s' % ujson.dumps(msg, indent=2))
+    logger.info('[file_handle]%s' % ujson.dumps(msg, indent=2))
     from_user = msg.get('User')
     cname = parse_name(from_user)
     file_name = msg.get('FileName')
@@ -113,20 +111,21 @@ def file_handle(msg):
             os.remove(storage_name)
     message_set.set(msg_id, message)
     if DEBUG:
-        logger.debug('message stored: %s' % ujson.dumps(message, indent=2))
+        logger.debug('[file_handle]message stored: %s' % ujson.dumps(message, indent=2))
+        fwd_msg = '[DEBUG]%s[%s@%s]' % (storage_name, cname, create_time)
+        itchat.send(fwd_msg, FWD_UID)
 
 
 @itchat.msg_register([NOTE])
 def note_handle(msg):
-    logger.debug('note_handle called')
-    logger.debug('%s' % ujson.dumps(msg, indent=2))
+    logger.info('[note_handle]%s' % ujson.dumps(msg, indent=2))
     msg_type_id = msg.get('MsgType')
     content = msg.get('Content')
     if msg_type_id != REVOKE_MSG_ID:
         return
     revoke_msg_id = REVOKE_CONTENT_RE.findall(content)
     if not revoke_msg_id:
-        logger.warning('MsgId not found!, body=%s' % ujson.dumps(msg, indent=2))
+        logger.error('[note_handle]MsgId not found!, body=%s' % ujson.dumps(msg, indent=2))
         return
     revoke_msg_id = revoke_msg_id[0]
     message = message_set.get(revoke_msg_id)
@@ -138,6 +137,7 @@ def note_handle(msg):
         text = body.get('text')
         fwd_msg = '%s[%s@%s]' % (text, from_user, message_time)
         itchat.send(fwd_msg, FWD_UID)
+        logger.info('[note_handle]revoked text %s' % message)
     elif message_type in FILE_TYPE:
         file_name = body.get('file_name')
         storage_name = body.get('storage_name')
@@ -152,6 +152,7 @@ def note_handle(msg):
             itchat.send_video(storage_name, toUserName=FWD_UID)
         else:
             itchat.send_file(storage_name, toUserName=FWD_UID)
+        logger.info('[note_handle]revoked file %s' % message)
     else:
         logger.info('Unhandled message_type %s' % message_type)
 
@@ -163,8 +164,7 @@ def add_friend(msg):
     :param msg:
     :return:
     """
-    logger.debug('add_friend called')
-    logger.info('get add_friend request from %s' % (msg.get('Text')))
+    logger.info('[add_friend]request from %s' % (msg.get('Text')))
     # itchat.add_friend(**msg['Text']) # 该操作会自动将新好友的消息录入，不需要重载通讯录
     # itchat.send_msg('Nice to meet you!', msg['RecommendInfo']['UserName'])
 
@@ -191,8 +191,8 @@ def init():
         f.write(str(pid))
     # Others
     if DEBUG:
-        logger.debug('DEBUG is on.')
-    logger.info('init finished.')
+        logger.debug('[init]DEBUG is on.')
+    logger.info('[init]init finished.')
 
 
 if __name__ == '__main__':
@@ -201,4 +201,4 @@ if __name__ == '__main__':
     try:
         itchat.run()
     except Exception as ex:
-        logger.exception('[init]ex=%s' % ex)
+        logger.exception('[main]ex=%s' % ex)
