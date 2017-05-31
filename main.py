@@ -103,9 +103,15 @@ def file_handle(msg):
             'content': content,
         },
     }
-    message_set.set(msg_id, message)
     if (not FILTER) or cname in FILTER:
         msg['Text'](storage_name)  # only buffer files from those in filter list
+        # post check
+        file_size = os.path.getsize(storage_name)
+        logger.debug('[file_handle]file_size of %s{msg_id=%s} is %s' % (storage_name, msg_id, file_size))
+        if not file_size:
+            logger.info('[file_handle]removed empty file %s{msg_id=%s}' % (storage_name, msg_id))
+            os.remove(storage_name)
+    message_set.set(msg_id, message)
     if DEBUG:
         logger.debug('message stored: %s' % ujson.dumps(message, indent=2))
 
@@ -136,7 +142,7 @@ def note_handle(msg):
         file_name = body.get('file_name')
         storage_name = body.get('storage_name')
         if not os.path.exists(storage_name):
-            logger.error('[note_handle]File %s not exist!' % storage_name)
+            logger.warning('[note_handle]File %s not exist!' % storage_name)
             return
         fwd_msg = '%s[%s@%s]' % (file_name, from_user, message_time)
         itchat.send(fwd_msg, FWD_UID)
@@ -177,7 +183,7 @@ def init():
             file_path = os.path.join(STORAGE_DIR, f)
             creation_time = os.path.getctime(file_path)
             if current_time - creation_time > settings.CLEANUP_THRESHOLD:
-                os.unlink(file_path)
+                os.remove(file_path)
                 logger.info('[init.cleanup]removed %s' % file_path)
     # Set PID file
     pid = os.getpid()
