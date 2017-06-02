@@ -5,7 +5,10 @@ import datetime
 import os
 import re
 import time
-import ujson
+try:
+    import ujson
+except:
+    import json as ujson
 
 import itchat
 from itchat.content import *

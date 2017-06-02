@@ -3,7 +3,10 @@
 # Create Time   : 2017/5/28 下午11:09
 import sys
 import redis
-import ujson
+try:
+    import ujson
+except:
+    import json as ujson
 
 from util import logger
 from settings import REDIS_CONFIG, EXPIRE_TIME, USER_POLICY
