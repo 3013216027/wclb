@@ -16,7 +16,7 @@ class DBS(object):
     collection for messages and user storage
     """
     USER_HASH = 'user'
-    USER_EXPIRE = 3600
+    USER_EXPIRE = 3600 * 18
 
     def __init__(self):
         try:
@@ -63,7 +63,7 @@ class DBS(object):
         :return:
         """
         if USER_POLICY == 'hashmap':
-            self.server.expire(DBS.USER_HASH, 50)
+            self.server.expire(DBS.USER_HASH, DBS.USER_EXPIRE)
             self.server.hset(DBS.USER_HASH, username, cname)
         else:
             self.server.set(username, cname, ex=DBS.USER_EXPIRE)
