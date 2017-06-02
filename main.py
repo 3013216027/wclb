@@ -95,7 +95,7 @@ def text_handle(msg):
         },
     }
     if is_group:
-        message['from_group'] = msg.get('FromUserName')
+        message['from_group'] = msg.get('UserName')
     db.set_msg(msg_id, message)
     if DEBUG:
         logger.debug('[text_handle]message stored: %s' % ujson.dumps(message, indent=2))
@@ -136,7 +136,7 @@ def file_handle(msg):
         },
     }
     if is_group:
-        message['from_group'] = msg.get('FromUserName')
+        message['from_group'] = msg.get('UserName')
     if (not FILTER) or cname in FILTER:
         msg['Text'](storage_name)  # only buffer files from those in filter list
         # post check
