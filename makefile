@@ -1,9 +1,11 @@
 .PID=wclb.pid
 
-.default: daemon
+.default: run
 
-test: main.py
-	@python -u main.py
+run:
+	@make daemon
+	@sleep 2
+	@make login
 
 daemon: main.py stop
 	@echo "====================" >> access.log
