@@ -82,16 +82,20 @@ def text_handle(msg):
     msg_type = msg.get('Type')
     msg_id = msg.get('MsgId')
     create_time = get_time(msg.get('CreateTime'))
+    is_group = from_user.get('MemberCount') > 0
     message = {
         # 'mid': msg_id,
         'from_user': cname,
         'type': msg_type,
         'time': create_time,
+        'is_group': is_group,
         'body': {
             'text': text,
             'content': content,
         },
     }
+    if is_group:
+        message['from_group'] = msg.get('FromUserName')
     db.set_msg(msg_id, message)
     if DEBUG:
         logger.debug('[text_handle]message stored: %s' % ujson.dumps(message, indent=2))
@@ -119,16 +123,20 @@ def file_handle(msg):
     msg_id = msg.get('MsgId')
     content = msg.get('Content')
     create_time = get_time(msg.get('CreateTime'))
+    is_group = from_user.get('MemberCount') > 0
     message = {
         'from_user': cname,
         'type': file_type,
         'time': create_time,
+        'is_group': is_group,
         'body': {
             'file_name': file_name,
             'storage_name': storage_name,
             'content': content,
         },
     }
+    if is_group:
+        message['from_group'] = msg.get('FromUserName')
     if (not FILTER) or cname in FILTER:
         msg['Text'](storage_name)  # only buffer files from those in filter list
         # post check
@@ -173,6 +181,12 @@ def note_handle(msg):
             logger.warning('[note_handle]File %s not exist!' % storage_name)
             return
         fwd_msg = '%s[%s recall@%s]' % (file_name, from_user, message_time)
+        if message.get('is_group'):
+            if settings.FWD_BACK.get('group'):
+                itchat.send(fwd_msg, message.get('from_group'))
+        else:
+            if settings.FWD_BACK.get('friend'):
+                itchat.send(fwd_msg, message.get('from_user'))
         itchat.send(fwd_msg, FWD_UID)
         if message_type == PICTURE:
             itchat.send_image(storage_name, toUserName=FWD_UID)
