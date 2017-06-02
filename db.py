@@ -19,7 +19,7 @@ class DBS(object):
     collection for messages and user storage
     """
     USER_HASH = 'user'
-    USER_EXPIRE = 3600 * 18
+    USER_EXPIRE = 3600 * 24 * 365 * 10
 
     def __init__(self):
         try:
