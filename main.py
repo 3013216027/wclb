@@ -82,7 +82,7 @@ def text_handle(msg):
     msg_type = msg.get('Type')
     msg_id = msg.get('MsgId')
     create_time = get_time(msg.get('CreateTime'))
-    is_group = from_user.get('MemberCount') > 0
+    is_group = from_user.get('MemberCount', 0) > 0
     message = {
         # 'mid': msg_id,
         'from_user': cname,
