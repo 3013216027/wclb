@@ -3,7 +3,8 @@ __pycache__
 *pyc
 
 *.pid
-access.log
+nohup.out
+access.log*
 
 itchat.pkl
 storage

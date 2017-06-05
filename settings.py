@@ -1,11 +1,18 @@
 # -*- coding:utf-8 -*-
 # Author: zhengdongjian@bytedance.com
 # Create Time: Sun May 28 19:55:08 2017
+import os
 import logging
 
 DEBUG = False
-LOG_LEVEL = logging.INFO
-LOG_FORMAT = '%(levelname)s %(asctime)s %(filename)s:%(lineno)s data=%(message)s'
+LOG_CONFIG = {
+    'logger_name': 'wclb',
+    'level': logging.INFO,
+    'format': '%(levelname)s %(asctime)s %(filename)s:%(lineno)s data=%(message)s',
+    'filename': os.path.join(os.path.curdir, 'access.log'),
+    'rotate_size': 1024 * 1024,  # log rotating size in Bytes
+    'rotate_count': 7,  # old logs will be renamed as {filename}.1, etc
+}
 
 # Filter list for file storage
 FILTER = [
