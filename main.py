@@ -152,6 +152,24 @@ def file_handle(msg):
         itchat.send(fwd_msg, FWD_UID)
 
 
+def forward_back(message, fwd_msg):
+    """
+    forward message revoke notice
+    :param message: message from cache
+    :param fwd_msg: notice message
+    :return:
+    """
+    # send to the lists for no reason
+    itchat.send(fwd_msg, settings.FWD_UID)
+    # send to the group or friend back if set
+    if message.get('is_group'):
+        if settings.FWD_BACK.get('group'):
+            itchat.send(fwd_msg, message.get('from_group'))
+    else:
+        if settings.FWD_BACK.get('friend'):
+            itchat.send(fwd_msg, message.get('from_user'))
+
+
 @itchat.msg_register([NOTE], isFriendChat=True, isGroupChat=True)
 def note_handle(msg):
     logger.info('[note_handle]%s' % ujson.dumps(msg, indent=2))
@@ -172,7 +190,7 @@ def note_handle(msg):
     if message_type in TEXT_TYPE:
         text = body.get('text')
         fwd_msg = '%s[%s recall@%s]' % (text, from_user, message_time)
-        itchat.send(fwd_msg, FWD_UID)
+        forward_back(message, fwd_msg)
         logger.info('[note_handle]revoked text %s' % message)
     elif message_type in FILE_TYPE:
         file_name = body.get('file_name')
@@ -181,13 +199,7 @@ def note_handle(msg):
             logger.warning('[note_handle]File %s not exist!' % storage_name)
             return
         fwd_msg = '%s[%s recall@%s]' % (file_name, from_user, message_time)
-        if message.get('is_group'):
-            if settings.FWD_BACK.get('group'):
-                itchat.send(fwd_msg, message.get('from_group'))
-        else:
-            if settings.FWD_BACK.get('friend'):
-                itchat.send(fwd_msg, message.get('from_user'))
-        itchat.send(fwd_msg, FWD_UID)
+        forward_back(message, fwd_msg)
         if message_type == PICTURE:
             itchat.send_image(storage_name, toUserName=FWD_UID)
         elif message_type == VIDEO:
