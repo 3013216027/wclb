@@ -37,6 +37,7 @@ FWD_UID = 'filehelper'
 FWD_BACK = {
     'friend': False,
     'group': True,
+    'file': True,  # file forward back is default ON for UID_LST
 }
 
 # Storage settings

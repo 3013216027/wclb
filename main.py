@@ -152,9 +152,33 @@ def file_handle(msg):
         itchat.send(fwd_msg, FWD_UID)
 
 
-def forward_back(message, fwd_msg):
+def forward_back_file(message_type, storage_name, to_user):
+    """
+    forward file
+    :param to_user:
+    :param message_type:
+    :param storage_name:
+    :return:
+    """
+    if message_type == PICTURE:
+        itchat.send_image(storage_name, toUserName=FWD_UID)
+        if settings.FWD_BACK.get('file'):
+            itchat.send_image(storage_name, toUserName=to_user)
+    elif message_type == VIDEO:
+        itchat.send_video(storage_name, toUserName=FWD_UID)
+        if settings.FWD_BACK.get('file'):
+            itchat.send_video(storage_name, toUserName=to_user)
+    else:
+        itchat.send_file(storage_name, toUserName=FWD_UID)
+        if settings.FWD_BACK.get('file'):
+            itchat.send_file(storage_name, toUserName=to_user)
+
+
+def forward_back_msg(message, fwd_msg, message_type=None, storage_name=None):
     """
     forward message revoke notice
+    :param message_type:
+    :param storage_name:
     :param message: message from cache
     :param fwd_msg: notice message
     :return:
@@ -164,10 +188,16 @@ def forward_back(message, fwd_msg):
     # send to the group or friend back if set
     if message.get('is_group'):
         if settings.FWD_BACK.get('group'):
-            itchat.send(fwd_msg, message.get('from_group'))
+            from_group = message.get('from_group')
+            itchat.send(fwd_msg, from_group)
+            if message_type in FILE_TYPE:
+                forward_back_file(message_type, storage_name, from_group)
     else:
         if settings.FWD_BACK.get('friend'):
-            itchat.send(fwd_msg, message.get('from_user'))
+            from_user = message.get('from_user')
+            itchat.send(fwd_msg, from_user)
+            if message_type in FILE_TYPE and settings.FWD_BACK.get('file'):
+                forward_back_file(message_type, storage_name, from_user)
 
 
 @itchat.msg_register([NOTE], isFriendChat=True, isGroupChat=True)
@@ -190,7 +220,7 @@ def note_handle(msg):
     if message_type in TEXT_TYPE:
         text = body.get('text')
         fwd_msg = '%s[%s recall@%s]' % (text, from_user, message_time)
-        forward_back(message, fwd_msg)
+        forward_back_msg(message, fwd_msg)
         logger.info('[note_handle]revoked text %s' % message)
     elif message_type in FILE_TYPE:
         file_name = body.get('file_name')
@@ -199,16 +229,11 @@ def note_handle(msg):
             logger.warning('[note_handle]File %s not exist!' % storage_name)
             return
         fwd_msg = '%s[%s recall@%s]' % (file_name, from_user, message_time)
-        forward_back(message, fwd_msg)
-        if message_type == PICTURE:
-            itchat.send_image(storage_name, toUserName=FWD_UID)
-        elif message_type == VIDEO:
-            itchat.send_video(storage_name, toUserName=FWD_UID)
-        else:
-            itchat.send_file(storage_name, toUserName=FWD_UID)
+        forward_back_msg(message, fwd_msg, message_type, storage_name)
         logger.info('[note_handle]revoked file %s' % message)
     else:
-        logger.info('Unhandled message_type %s' % message_type)
+        logger.info('[note_handle]Unhandled message_type %s, message=%s' % (message_type, message
+                                                                            ))
 
 
 @itchat.msg_register(FRIENDS)
