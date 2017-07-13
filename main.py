@@ -160,6 +160,7 @@ def forward_back_file(message_type, storage_name, to_user):
     :param storage_name:
     :return:
     """
+    logger.info('[forward_back_file]storage_name=%s,to_user=%s' % (storage_name, to_user))
     if message_type == PICTURE:
         itchat.send_image(storage_name, toUserName=FWD_UID)
         if settings.FWD_BACK.get('file'):
@@ -183,6 +184,7 @@ def forward_back_msg(message, fwd_msg, message_type=None, storage_name=None):
     :param fwd_msg: notice message
     :return:
     """
+    logger.info('[forward_back_msg]fwd_msg=%s,message_type=%s,storage_name=%s' % (fwd_msg, message_type, storage_name))
     # send to the lists for no reason
     itchat.send(fwd_msg, settings.FWD_UID)
     # send to the group or friend back if set

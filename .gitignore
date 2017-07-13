@@ -6,5 +6,6 @@ __pycache__
 nohup.out
 access.log*
 
+dump.rdb
 itchat.pkl
 storage

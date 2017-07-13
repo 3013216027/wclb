@@ -35,9 +35,9 @@ USER_POLICY = ['default', 'hashmap'][1]  # policy for user cname storage
 FWD_UID = 'filehelper'
 # Forward back a message to the same chat
 FWD_BACK = {
-    'friend': False,
-    'group': True,
-    'file': True,  # file forward back is default ON for UID_LST
+    'friend': True,
+    'group': False,
+    'file': True,  # file forward back is default ON for FWD_UID
 }
 
 # Storage settings
